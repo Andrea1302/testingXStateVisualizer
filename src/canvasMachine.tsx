@@ -1,9 +1,7 @@
 import { send } from 'xstate';
 import { createModel } from 'xstate/lib/model';
 import { ModelEventsFrom } from 'xstate/lib/model.types';
-import { StateElkNode } from './graphUtils';
 import { localCache } from './localCache';
-import { EmbedContext, Point } from './types';
 
 export enum ZoomFactor {
   slow = 1.09,
@@ -26,8 +24,8 @@ const initialPosition = {
 
 const initialContext = {
   ...initialPosition,
-  elkGraph: undefined as StateElkNode | undefined,
-  embed: undefined as EmbedContext | undefined,
+  elkGraph: undefined as any | undefined,
+  embed: undefined as any | undefined,
 };
 
 export interface Viewbox {
@@ -40,11 +38,11 @@ const SHORT_PAN = 10;
 
 export const canvasModel = createModel(initialContext, {
   events: {
-    'ZOOM.OUT': (point?: Point, zoomFactor?: ZoomFactor) => ({
+    'ZOOM.OUT': (point?: any, zoomFactor?: ZoomFactor) => ({
       zoomFactor,
       point,
     }),
-    'ZOOM.IN': (point?: Point, zoomFactor?: ZoomFactor) => ({
+    'ZOOM.IN': (point?: any, zoomFactor?: ZoomFactor) => ({
       zoomFactor,
       point,
     }),
@@ -71,7 +69,7 @@ export const canvasModel = createModel(initialContext, {
       width,
       height,
     }),
-    'elkGraph.UPDATE': (elkGraph: StateElkNode) => ({ elkGraph }),
+    'elkGraph.UPDATE': (elkGraph: any) => ({ elkGraph }),
     FIT_TO_CONTENT: () => ({}),
   },
 });
@@ -84,7 +82,7 @@ const MAX_ZOOM_OUT_FACTOR = 0.1;
 
 const MAX_ZOOM_IN_FACTOR = 2;
 
-export const canZoom = (embed?: EmbedContext) => {
+export const canZoom = (embed?: any) => {
   return !embed?.isEmbedded || embed.zoom;
 };
 
@@ -102,7 +100,7 @@ export const canPan = (ctx: typeof initialContext) => {
 
 const getCanvasCenterPoint = ({
   canvasPanelPosition,
-}: typeof initialContext): Point => ({
+}: typeof initialContext): any => ({
   x: canvasPanelPosition.offsetX + canvasPanelPosition.width / 2,
   y: canvasPanelPosition.offsetY + canvasPanelPosition.height / 2,
 });
@@ -112,7 +110,7 @@ const getNewZoomAndViewbox = (
   {
     translationPoint = getCanvasCenterPoint(ctx),
     zoomFactor,
-  }: { translationPoint?: Point; zoomFactor: number },
+  }: { translationPoint?: any; zoomFactor: number },
 ): { zoom: number; viewbox: Viewbox } => {
   const prevZoomValue = ctx.zoom;
   const prevViewbox = ctx.viewbox;

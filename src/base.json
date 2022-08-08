@@ -1,0 +1,62 @@
+{
+    "version": 1,
+    "deprecated": false,
+    "id": "CFN_DOSSIER_AT",
+    "states": [
+        {
+            "type": "SimpleState",
+            "id": "SIMULATION",
+            "microfrontendBullet": false
+        },
+        {
+            "type": "SimpleState",
+            "id": "MINIMUM_DATA",
+            "microfrontendBullet": false
+        },
+        {
+            "type": "SimpleState",
+            "id": "ADDITIONAL_DATA",
+            "microfrontendBullet": false
+        },
+        {
+            "type": "SimpleState",
+            "id": "PERSONAL_DATA",
+            "microfrontendBullet": false
+        },
+        {
+            "type": "SimpleState",
+            "id": "CREDIT_DECISION",
+            "microfrontendBullet": false
+        }
+    ],
+    "transitions": [
+        {
+            "type": "ExternalTransition",
+            "source": "SIMULATION",
+            "target": "MINIMUM_DATA",
+            "event": "SIMULATION_MINIMUM_DATA"
+        },
+        {
+            "type": "ExternalTransition",
+            "source": "MINIMUM_DATA",
+            "target": "ADDITIONAL_DATA",
+            "event": "MINIMUM_DATA_ADDITIONAL_DATA"
+        },
+        {
+            "type": "ExternalTransition",
+            "source": "ADDITIONAL_DATA",
+            "target": "PERSONAL_DATA",
+            "event": "ADDITIONAL_DATA_PERSONAL_DATA"
+        },
+        {
+            "type": "ExternalTransition",
+            "source": "PERSONAL_DATA",
+            "target": "CREDIT_DECISION",
+            "event": "PERSONAL_DATA_CREDIT_DECISION"
+        }
+    ],
+    "initialState": "SIMULATION",
+    "endStates": [
+        "CREDIT_DECISION"
+    ]
+}

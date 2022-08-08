@@ -127,11 +127,12 @@ function App({ isEmbedded = false }: { isEmbedded?: boolean }) {
     <>
       <VizHead />
       <EmbedProvider value={embed}>
-        <ChakraProvider theme={theme}>
+        {/* <ChakraProvider theme={theme}> */}
           <EditorThemeProvider>
             <PaletteProvider value={paletteService}>
               <SimulationProvider value={simService}>
                 <Box
+                  bg="#000"
                   data-testid="app"
                   data-viz-theme="dark"
                   as="main"
@@ -151,7 +152,7 @@ function App({ isEmbedded = false }: { isEmbedded?: boolean }) {
               </SimulationProvider>
             </PaletteProvider>
           </EditorThemeProvider>
-        </ChakraProvider>
+        {/* </ChakraProvider> */}
       </EmbedProvider>
     </>
   );

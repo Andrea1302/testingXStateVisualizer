@@ -9,17 +9,12 @@ import {
   Button,
   ButtonGroup,
   IconButton,
-  Link,
   Menu,
   MenuButton,
-  MenuItem,
-  MenuList,
-  Portal,
   Spinner,
   VStack,
 } from '@chakra-ui/react';
 import { useSelector } from '@xstate/react';
-import xstatePkgJson from 'xstate/package.json';
 import React, { useMemo } from 'react';
 import { CanvasContainer } from './CanvasContainer';
 import { useCanvas } from './CanvasContext';
@@ -32,7 +27,7 @@ import { Overlay } from './Overlay';
 import { useEmbed } from './embedContext';
 import { CompressIcon, HandIcon } from './Icons';
 import { useSourceActor } from './sourceMachine';
-import { WelcomeArea } from './WelcomeArea';
+
 
 export const CanvasView: React.FC = () => {
   // TODO: refactor this so an event can be explicitly sent to a machine
@@ -40,6 +35,7 @@ export const CanvasView: React.FC = () => {
   const [panModeEnabled, setPanModeEnabled] = React.useState(false);
   const embed = useEmbed();
   const simService = useSimulation();
+  console.log('simService', simService)
   const canvasService = useCanvas();
   const [sourceState] = useSourceActor();
   const machine = useSelector(simService, (state) => {
@@ -83,7 +79,7 @@ export const CanvasView: React.FC = () => {
     () => !embed?.isEmbedded || (embed.controls && embed.pan),
     [embed],
   );
-
+  console.log(digraph, 'diiiisgraph')
   return (
     <Box
       display="grid"
@@ -107,7 +103,6 @@ export const CanvasView: React.FC = () => {
             </Box>
           </Overlay>
         )}
-        {isEmpty && canShowWelcomeMessage && <WelcomeArea />}
       </CanvasContainer>
 
       {showControls && (
@@ -200,34 +195,6 @@ export const CanvasView: React.FC = () => {
                   />
                 }
               />
-              <Portal>
-                <MenuList fontSize="sm" padding="0">
-                  <MenuItem
-                    as={Link}
-                    href="https://github.com/statelyai/xstate-viz/issues/new?template=bug_report.md"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Report an issue
-                  </MenuItem>
-                  <MenuItem
-                    as={Link}
-                    href="https://github.com/statelyai/xstate"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {`XState version ${xstatePkgJson.version}`}
-                  </MenuItem>
-                  <MenuItem
-                    as={Link}
-                    href="https://stately.ai/privacy"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Privacy Policy
-                  </MenuItem>
-                </MenuList>
-              </Portal>
             </Menu>
           )}
         </Box>

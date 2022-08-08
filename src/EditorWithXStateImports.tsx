@@ -2,10 +2,7 @@ import Editor, { Monaco, OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { useEffect, useRef } from 'react';
 import { themes } from './editor-themes';
-import { useEmbed } from './embedContext';
-import { localCache } from './localCache';
 import { prettierLoader } from './prettier';
-import { SpinnerWithText } from './SpinnerWithText';
 import { useEditorTheme } from './themeContext';
 import { detectNewImportsToAcquireTypeFor } from './typeAcquisition';
 
@@ -44,7 +41,7 @@ const withTypeAcquisition = (
       window.fetch.bind(window),
       {
         logger: {
-          log: process.env.NODE_ENV !== 'production' ? console.log : () => {},
+          log: process.env.NODE_ENV !== 'production' ? console.log : () => { },
           error: console.error,
           warn: console.warn,
         },
@@ -69,7 +66,7 @@ const withTypeAcquisition = (
 export const EditorWithXStateImports = (
   props: EditorWithXStateImportsProps,
 ) => {
-  const embed = useEmbed();
+  // const embed = useEmbed();
   const editorTheme = useEditorTheme();
   const editorRef = useRef<typeof editor | null>(null);
   const definedEditorThemes = useRef(new Set<string>());
@@ -87,7 +84,6 @@ export const EditorWithXStateImports = (
       editor.defineTheme(theme, themes[theme]);
     }
     editor.setTheme(theme);
-    localCache.saveEditorTheme(editorTheme.theme);
   }, [editorTheme.theme]);
 
   return (
@@ -99,9 +95,8 @@ export const EditorWithXStateImports = (
         minimap: { enabled: false },
         tabSize: 2,
         glyphMargin: true,
-        readOnly: embed?.isEmbedded && embed.readOnly,
       }}
-      loading={<SpinnerWithText text="Preparing the editor" />}
+      loading={'loading...'}
       onChange={(text) => {
         if (typeof text === 'string') {
           props.onChange?.(text);
@@ -153,17 +148,6 @@ export const EditorWithXStateImports = (
             } finally {
               props.onFormat?.();
             }
-          },
-        });
-
-        // Ctrl/CMD + S to save/update to registry
-        editor.addAction({
-          id: 'save',
-          label: 'Save',
-          keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KEY_S],
-          run: () => {
-            props.onSave?.();
-            editor.getAction('editor.action.formatDocument').run();
           },
         });
 

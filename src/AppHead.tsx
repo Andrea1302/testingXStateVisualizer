@@ -1,7 +1,4 @@
 import * as React from 'react';
-import Head from 'next/head';
-import { featureFlags } from './featureFlags';
-
 export interface AppHeadProps {
   /**
    * @example
@@ -24,7 +21,7 @@ export interface AppHeadProps {
 
 export const AppHead = ({ importElk = true, ...props }: AppHeadProps) => {
   return (
-    <Head>
+    <head>
       <link rel="apple-touch-icon" href="/viz/favicon@256.png" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <link rel="icon" href="/viz/favicon.png" />
@@ -38,16 +35,12 @@ export const AppHead = ({ importElk = true, ...props }: AppHeadProps) => {
       <meta property="og:url" content={`https://stately.ai/viz`} />
       <meta property="og:title" content={props.ogTitle} />
       <meta property="og:description" content={props.description} />
-      {props.ogImageUrl && featureFlags['Show OG Images'] && (
-        <meta property="og:image" content={props.ogImageUrl} />
-      )}
-
       <meta property="twitter:card" content="summary_large_image" />
       <script
         async
         data-domain="stately.ai"
         src="https://plausible.io/js/plausible.js"
       />
-    </Head>
+    </head>
   );
 };

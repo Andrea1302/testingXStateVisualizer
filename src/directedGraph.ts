@@ -166,6 +166,7 @@ export function getBackLinkMap(digraph: DirectedGraphNode): DigraphBackLinkMap {
 
   nodes.forEach((node) => {
     node.edges.forEach((edge) => {
+      console.log(edge,'edddddge')
       addMapping(edge.target, edge);
     });
   });

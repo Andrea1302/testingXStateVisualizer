@@ -1,4 +1,4 @@
-import { TypedDocumentNode } from '@graphql-typed-document-node/core';
+
 import * as React from 'react';
 import {
   ActionObject,
@@ -10,16 +10,33 @@ import {
   StateNode,
   TransitionDefinition,
 } from 'xstate';
-import {
-  AnyState,
-  AnyStateMachine,
-  EmbedMode,
-  EmbedPanel,
-  ParsedEmbed,
-} from './types';
+import { EmbedMode, EmbedPanel,ParsedEmbed } from './types';
 import { print } from 'graphql';
 import { useSelector } from '@xstate/react';
 import { NextRouter } from 'next/router';
+
+export function handlerRemap(data: any) {
+  const machine = data.states.reduce((acc: any, { id, type }) => {
+    const findTransition = data.transitions.find((el) => el.source === id);
+    if (findTransition === undefined) return acc;
+    acc[id] = {
+      tags: [type],
+      on: {
+        [findTransition.event]: findTransition.target,
+      },
+    };
+    return acc;
+  }, {});
+  machine[data.endStates[0]] = {
+    type: 'final',
+  }
+  return {
+    id: data.id,
+    initial: data.initialState,
+    states: machine,
+  };
+};
+
 
 export function isNullEvent(eventName: string) {
   return eventName === ActionTypes.NullEvent;
@@ -36,16 +53,16 @@ export function isInternalEvent(eventName: string) {
 
 export function createInterpreterContext<
   TInterpreter extends Interpreter<any, any, any>,
->(displayName: string) {
+  >(displayName: string) {
   const [Provider, useContext] =
     createRequiredContext<TInterpreter>(displayName);
 
   const createUseSelector =
     <Data>(selector: (state: TInterpreter['state']) => Data) =>
-    () => {
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      return useSelector(useContext(), selector);
-    };
+      () => {
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        return useSelector(useContext(), selector);
+      };
 
   return [Provider, useContext, createUseSelector] as const;
 }
@@ -71,7 +88,7 @@ export interface Edge<
   TContext,
   TEvent extends AnyEventObject,
   TEventType extends TEvent['type'] = string,
-> {
+  > {
   event: TEventType;
   source: StateNode<TContext, any, TEvent>;
   target: StateNode<TContext, any, TEvent>;
@@ -139,37 +156,37 @@ export const updateQueryParamsWithoutReload = (
   window.history.pushState({ path: newURL.href }, '', newURL.href);
 };
 
-export const gQuery = <Data, Variables>(
-  query: TypedDocumentNode<Data, Variables>,
-  variables: Variables,
-  accessToken?: string,
-): Promise<{ data?: Data }> =>
-  fetch(process.env.NEXT_PUBLIC_GRAPHQL_API_URL, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      ...(accessToken && { authorization: 'Bearer ' + accessToken }),
-    },
-    body: JSON.stringify({
-      query: print(query),
-      variables,
-    }),
-  })
-    .then((resp) => resp.json())
-    .then((res) => {
-      /**
-       * Throw the GQL error if it comes - this
-       * doesn't happen by default
-       */
-      if (res.errors) {
-        throw new Error(res.errors[0]!.message);
-      }
-      return res;
-    });
+// export const gQuery = <Data, Variables>(
+//   query: any,
+//   variables: Variables,
+//   accessToken?: string,
+// ): Promise<{ data?: Data }> =>
+//   fetch(process.env.NEXT_PUBLIC_GRAPHQL_API_URL, {
+//     method: 'POST',
+//     headers: {
+//       'content-type': 'application/json',
+//       ...(accessToken && { authorization: 'Bearer ' + accessToken }),
+//     },
+//     body: JSON.stringify({
+//       query: print(query),
+//       variables,
+//     }),
+//   })
+//     .then((resp) => resp.json())
+//     .then((res) => {
+//       /**
+//        * Throw the GQL error if it comes - this
+//        * doesn't happen by default
+//        */
+//       if (res.errors) {
+//         throw new Error(res.errors[0]!.message);
+//       }
+//       return res;
+//     });
 
 export function willChange(
-  machine: AnyStateMachine,
-  state: AnyState,
+  machine: any,
+  state: any,
   event: AnyEventObject,
 ): boolean {
   return !!machine.transition(state, event).changed;
@@ -205,7 +222,7 @@ export function isDelayedTransitionAction(
  * /?mode=viz|full|panels default:viz
  * /?mode=panels&panel=code|state|events|actors default:code
  */
-export const DEFAULT_EMBED_PARAMS: ParsedEmbed = {
+export const DEFAULT_EMBED_PARAMS: any = {
   mode: EmbedMode.Viz,
   panel: EmbedPanel.Code,
   showOriginalLink: true,

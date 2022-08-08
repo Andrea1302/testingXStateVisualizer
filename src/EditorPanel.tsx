@@ -1,61 +1,24 @@
-import { AddIcon } from '@chakra-ui/icons';
 import {
   Box,
   Button,
-  HStack,
-  IconProps,
-  Text,
-  Tooltip,
 } from '@chakra-ui/react';
 import type { Monaco } from '@monaco-editor/react';
-import { useActor, useMachine, useSelector } from '@xstate/react';
+import { useMachine, useSelector } from '@xstate/react';
 import { editor, Range } from 'monaco-editor';
-import dynamic from 'next/dynamic';
+import { handlerRemap } from './utils';
+import EditorWithXStateImports from './EditorWithXStateImports';
 import React from 'react';
-import { ActorRefFrom, assign, DoneInvokeEvent, send, spawn } from 'xstate';
+import { assign, DoneInvokeEvent, send, spawn } from 'xstate';
 import { createModel } from 'xstate/lib/model';
 import { useAuth } from './authContext';
-import { CommandPalette } from './CommandPalette';
-import { useEmbed } from './embedContext';
-import { ForkIcon, MagicIcon, SaveIcon } from './Icons';
 import { notifMachine } from './notificationMachine';
 import { parseMachines } from './parseMachine';
-import { useSimulationMode } from './SimulationContext';
+import { createMachine} from "xstate"
 import {
-  getEditorValue,
   getShouldImmediateUpdate,
   SourceMachineActorRef,
-  SourceMachineState,
 } from './sourceMachine';
 import type { AnyStateMachine } from './types';
-import { getPlatformMetaKeyLabel, uniq } from './utils';
-
-function buildGistFixupImportsText(usedXStateGistIdentifiers: string[]) {
-  const rootNames: string[] = [];
-  let text = '';
-
-  for (const identifier of usedXStateGistIdentifiers) {
-    switch (identifier) {
-      case 'raise':
-        rootNames.push('actions');
-        text += 'const { raise } = actions;\n';
-        break;
-      case 'XState':
-        text += 'import * as XState from "xstate";\n';
-        break;
-      default:
-        rootNames.push(identifier);
-        break;
-    }
-  }
-
-  if (rootNames.length) {
-    // this uses `uniq` on the `rootNames` list because `actions` could be pushed into it while it was already in the list
-    text = `import { ${uniq(rootNames).join(', ')} } from "xstate";\n${text}`;
-  }
-
-  return text;
-}
 
 class SyntaxError extends Error {
   range: Range;
@@ -73,14 +36,10 @@ class SyntaxError extends Error {
   }
 }
 
-const EditorWithXStateImports = dynamic(
-  () => import('./EditorWithXStateImports'),
-);
-
 const editorPanelModel = createModel(
   {
     code: '',
-    notifRef: undefined! as ActorRefFrom<typeof notifMachine>,
+    // notifRef: undefined! as ActorRefFrom<typeof notifMachine>,
     monacoRef: null as Monaco | null,
     standaloneEditorRef: null as editor.IStandaloneCodeEditor | null,
     sourceRef: null as SourceMachineActorRef,
@@ -136,32 +95,7 @@ const editorPanelMachine = editorPanelModel.createMachine(
             },
           },
           fixing_gist_imports: {
-            invoke: {
-              src: async (ctx) => {
-                const monaco = ctx.monacoRef!;
-                const uri = monaco.Uri.parse(ctx.mainFile);
-                const getWorker =
-                  await monaco.languages.typescript.getTypeScriptWorker();
-                const tsWorker = await getWorker(uri);
 
-                const usedXStateGistIdentifiers: string[] = await (
-                  tsWorker as any
-                ).queryXStateGistIdentifiers(uri.toString());
-
-                if (usedXStateGistIdentifiers.length > 0) {
-                  const fixupImportsText = buildGistFixupImportsText(
-                    usedXStateGistIdentifiers,
-                  );
-                  const model = monaco.editor.getModel(uri)!;
-                  const currentValue = model.getValue();
-                  model.setValue(`${fixupImportsText}\n${currentValue}`);
-                }
-              },
-              onDone: 'done',
-              onError: {
-                actions: ['broadcastError'],
-              },
-            },
           },
           done: {
             type: 'final',
@@ -217,7 +151,7 @@ const editorPanelMachine = editorPanelModel.createMachine(
             const compiledSource = await tsWoker
               .getEmitOutput(uri.toString())
               .then((result) => result.outputFiles[0].text);
-
+            console.log(compiledSource, 'compilesource')
             return parseMachines(compiledSource);
           },
           onDone: {
@@ -325,76 +259,18 @@ const editorPanelMachine = editorPanelModel.createMachine(
   },
 );
 
-export type SourceOwnershipStatus =
-  | 'user-owns-source'
-  | 'no-source'
-  | 'user-does-not-own-source';
-
-const getSourceOwnershipStatus = (sourceState: SourceMachineState) => {
-  let sourceStatus: SourceOwnershipStatus = 'no-source';
-
-  if (!sourceState.matches('no_source')) {
-    if (
-      sourceState.context.loggedInUserId ===
-      sourceState.context.sourceRegistryData?.system?.owner?.id
-    ) {
-      sourceStatus = 'user-owns-source';
-    } else {
-      sourceStatus = 'user-does-not-own-source';
-    }
-  }
-
-  return sourceStatus;
-};
-
-const getPersistTextAndIcon = (
-  isSignedOut: boolean,
-  sourceOwnershipStatus: SourceOwnershipStatus,
-): { text: string; Icon: React.FC<IconProps> } => {
-  if (isSignedOut) {
-    switch (sourceOwnershipStatus) {
-      case 'no-source':
-        return { text: 'Login to save', Icon: SaveIcon };
-      case 'user-does-not-own-source':
-      case 'user-owns-source':
-        return { text: 'Login to fork', Icon: ForkIcon };
-    }
-  }
-  switch (sourceOwnershipStatus) {
-    case 'no-source':
-    case 'user-owns-source':
-      return { text: 'Save', Icon: SaveIcon };
-    case 'user-does-not-own-source':
-      return { text: 'Fork', Icon: ForkIcon };
-  }
-};
-
 export const EditorPanel: React.FC<{
-  onSave: () => void;
-  onFork: () => void;
-  onCreateNew: () => void;
   onChange: (machine: AnyStateMachine[]) => void;
   onChangedCodeValue: (code: string) => void;
-}> = ({ onSave, onChange, onChangedCodeValue, onFork, onCreateNew }) => {
-  const embed = useEmbed();
+}> = ({ onChange, onChangedCodeValue }) => {
   const authService = useAuth();
-  const [authState] = useActor(authService);
   const sourceService = useSelector(
     authService,
     (state) => state.context.sourceRef!,
   );
-  const [sourceState] = useActor(sourceService);
-
-  const sourceOwnershipStatus = getSourceOwnershipStatus(sourceState);
-
-  const simulationMode = useSimulationMode();
-
-  const persistMeta = getPersistTextAndIcon(
-    authState.matches('signed_out'),
-    sourceOwnershipStatus,
-  );
-
-  const value = getEditorValue(sourceState);
+  const baseJson = require('./base.json');
+  const value = `import { createMachine} from "xstate";
+  createMachine(${JSON.stringify(handlerRemap(baseJson))})`;
 
   const [current, send] = useMachine(editorPanelMachine, {
     actions: {
@@ -402,6 +278,8 @@ export const EditorPanel: React.FC<{
         onChange(ctx.machines!);
       },
       onChangedCodeValue: (ctx) => {
+        console.log(ctx.code, 'ctx.code');
+
         onChangedCodeValue(ctx.code);
       },
     },
@@ -415,137 +293,45 @@ export const EditorPanel: React.FC<{
 
   return (
     <>
-      {simulationMode === 'visualizing' && (
-        <CommandPalette
-          onSave={() => {
-            onSave();
-          }}
-          onVisualize={() => {
-            send('COMPILE');
-          }}
-        />
-      )}
       <Box
         height="100%"
         display="grid"
         gridTemplateRows="1fr auto"
         data-testid="editor"
       >
-        {simulationMode === 'visualizing' && (
-          <>
-            {/* This extra div acts as a placeholder that is supposed to stretch while EditorWithXStateImports lazy-loads (thanks to `1fr` on the grid) */}
-            <div style={{ minHeight: 0, minWidth: 0 }}>
-              <EditorWithXStateImports
-                value={value}
-                onMount={(standaloneEditor, monaco) => {
-                  send({
-                    type: 'EDITOR_READY',
-                    monacoRef: monaco,
-                    standaloneEditorRef: standaloneEditor,
-                  });
-                }}
-                onChange={(code) => {
-                  send({ type: 'EDITOR_CHANGED_VALUE', code });
-                }}
-                onFormat={() => {
-                  send({
-                    type: 'COMPILE',
-                  });
-                }}
-                onSave={() => {
-                  onSave();
-                }}
-              />
-            </div>
-            <HStack padding="2" w="full" justifyContent="space-between">
-              <HStack>
-                {!(embed?.isEmbedded && embed.readOnly) && (
-                  <Tooltip
-                    bg="black"
-                    color="white"
-                    label={`${getPlatformMetaKeyLabel()} + Enter`}
-                    closeDelay={500}
-                  >
-                    <Button
-                      disabled={isVisualizing}
-                      isLoading={isVisualizing}
-                      leftIcon={
-                        <MagicIcon fill="gray.200" height="16px" width="16px" />
-                      }
-                      onClick={() => {
-                        send({
-                          type: 'COMPILE',
-                        });
-                      }}
-                      variant="secondary"
-                    >
-                      Visualize
-                    </Button>
-                  </Tooltip>
-                )}
-                {!embed?.isEmbedded && (
-                  <Tooltip
-                    bg="black"
-                    color="white"
-                    label={`${getPlatformMetaKeyLabel()} + S`}
-                    closeDelay={500}
-                  >
-                    <Button
-                      isLoading={sourceState.hasTag('persisting')}
-                      disabled={sourceState.hasTag('persisting')}
-                      onClick={() => {
-                        onSave();
-                      }}
-                      leftIcon={
-                        <persistMeta.Icon
-                          fill="gray.200"
-                          height="16px"
-                          width="16px"
-                        />
-                      }
-                      variant="outline"
-                    >
-                      {persistMeta.text}
-                    </Button>
-                  </Tooltip>
-                )}
-                {sourceOwnershipStatus === 'user-owns-source' &&
-                  !embed?.isEmbedded && (
-                    <Button
-                      disabled={sourceState.hasTag('forking')}
-                      isLoading={sourceState.hasTag('forking')}
-                      onClick={() => {
-                        onFork();
-                      }}
-                      leftIcon={
-                        <ForkIcon fill="gray.200" height="16px" width="16px" />
-                      }
-                      variant="outline"
-                    >
-                      Fork
-                    </Button>
-                  )}
-              </HStack>
-              {sourceOwnershipStatus !== 'no-source' && !embed?.isEmbedded && (
-                <Button
-                  leftIcon={<AddIcon fill="gray.200" />}
-                  onClick={onCreateNew}
-                  variant="outline"
-                >
-                  New
-                </Button>
-              )}
-            </HStack>
-          </>
-        )}
-        {simulationMode === 'inspecting' && (
-          <Box padding="4">
-            <Text as="strong">Inspection mode</Text>
-            <Text>
-              Services from a separate process are currently being inspected.
-            </Text>
-          </Box>
-        )}
+        <>
+          {/* This extra div acts as a placeholder that is supposed to stretch while EditorWithXStateImports lazy-loads (thanks to `1fr` on the grid) */}
+          <div style={{ minHeight: 0, minWidth: 0 }}>
+            <EditorWithXStateImports
+              value={value}
+              onMount={(standaloneEditor, monaco) => {
+                send({
+                  type: 'EDITOR_READY',
+                  monacoRef: monaco,
+                  standaloneEditorRef: standaloneEditor,
+                });
+                setTimeout(function () {
+                  standaloneEditor.getAction('editor.action.formatDocument').run();
+                }, 100);
+              }}
+              onChange={(code) => {
+                send({ type: 'EDITOR_CHANGED_VALUE', code });
+              }}
+            />
+          </div>
+          <div>
+            <Button
+              disabled={isVisualizing}
+              onClick={() => {
+                send({
+                  type: 'COMPILE',
+                });
+              }}
+            >
+              Visualize
+            </Button>
+          </div>
+        </>
       </Box>
     </>
   );

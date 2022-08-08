@@ -33,7 +33,6 @@ export const Graph: React.FC<{ digraph: DirectedGraphNode }> = ({
       },
     },
   });
-
   const canvasService = useCanvas();
   const { viewbox, zoom } = useSelector(canvasService, (s) => s.context);
 
@@ -50,6 +49,7 @@ export const Graph: React.FC<{ digraph: DirectedGraphNode }> = ({
   }, [state.context.elkGraph]);
 
   const allEdges = useMemo(() => getAllEdges(digraph), [digraph]);
+  console.log(allEdges,'allEdges')
 
   if (state.matches('success')) {
     return (
@@ -69,6 +69,7 @@ export const Graph: React.FC<{ digraph: DirectedGraphNode }> = ({
           }
         />
         {allEdges.map((edge, i) => {
+          console.log(edge,'edgemappato')
           return (
             <MemoizedTransitionViz
               edge={edge}

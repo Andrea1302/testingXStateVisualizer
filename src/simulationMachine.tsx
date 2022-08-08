@@ -16,8 +16,7 @@ import {
 import { createModel } from 'xstate/lib/model';
 import { devTools } from './devInterface';
 import { notifMachine } from './notificationMachine';
-import { AnyState, AnyStateMachine, ServiceData } from './types';
-import { isOnClientSide } from './isOnClientSide';
+// import { AnyState, AnyStateMachine, ServiceData } from './types';
 
 export interface SimEvent extends SCXML.Event<any> {
   timestamp: number;
@@ -26,9 +25,9 @@ export interface SimEvent extends SCXML.Event<any> {
 
 export const simModel = createModel(
   {
-    state: undefined as AnyState | undefined,
+    state: undefined as any | undefined,
     notifRef: undefined! as ActorRefFrom<typeof notifMachine>,
-    serviceDataMap: {} as Record<string, ServiceData | undefined>,
+    serviceDataMap: {} as Record<string, any | undefined>,
     currentSessionId: null as string | null,
     events: [] as SimEvent[],
     previewEvent: undefined as string | undefined,
@@ -36,19 +35,19 @@ export const simModel = createModel(
   {
     events: {
       'SERVICE.SEND': (event: SCXML.Event<AnyEventObject>) => ({ event }),
-      'MACHINES.REGISTER': (machines: Array<AnyStateMachine>) => ({
+      'MACHINES.REGISTER': (machines: Array<any>) => ({
         machines,
       }),
 
       'MACHINES.RESET': () => ({}),
       'EVENT.PREVIEW': (eventType: string) => ({ eventType }),
       'PREVIEW.CLEAR': () => ({}),
-      'SERVICE.REGISTER': (serviceData: Omit<ServiceData, 'status'>) => ({
+      'SERVICE.REGISTER': (serviceData: Omit<any, 'status'>) => ({
         ...serviceData,
         // machines are always registered from within `.start()` call
         status: InterpreterStatus.Running,
       }),
-      'SERVICE.STATE': (sessionId: string, state: AnyState) => ({
+      'SERVICE.STATE': (sessionId: string, state: any) => ({
         sessionId,
         state,
       }),
@@ -66,11 +65,7 @@ export const simulationMachine = simModel.createMachine(
   {
     preserveActionOrder: true,
     context: simModel.initialContext,
-    initial:
-      isOnClientSide() &&
-      new URLSearchParams(window.location.search).has('inspect')
-        ? 'inspecting'
-        : 'visualizing',
+    initial: 'visualizing',
     entry: assign({ notifRef: () => spawn(notifMachine) }),
     invoke: {
       src: 'captureEventsFromChildServices',
@@ -150,10 +145,10 @@ export const simulationMachine = simModel.createMachine(
           id: 'proxy',
           src: () => (sendBack, onReceive) => {
             const serviceMap: Map<string, AnyInterpreter> = new Map();
-            const machines = new Set<AnyStateMachine>();
+            const machines = new Set<any>();
             const rootServices = new Set<AnyInterpreter>();
 
-            function locallyInterpret(machine: AnyStateMachine) {
+            function locallyInterpret(machine: any) {
               machines.add(machine);
 
               const service = interpret(machine, { devTools: true });
@@ -189,7 +184,7 @@ export const simulationMachine = simModel.createMachine(
 
             onReceive((event) => {
               if (event.type === 'INTERPRET') {
-                event.machines.forEach((machine: AnyStateMachine) => {
+                event.machines.forEach((machine: any) => {
                   try {
                     locallyInterpret(machine);
                   } catch (e) {
